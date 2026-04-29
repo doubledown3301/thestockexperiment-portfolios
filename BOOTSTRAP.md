@@ -10,7 +10,7 @@ will host the rebalance picks files with tamper-evident OpenTimestamps proofs.
 Go to https://github.com/new
 
 - **Owner:** `doubledown3301` (your account)
-- **Name:** `stockexperimentai-picks`
+- **Name:** `thestockexperiment-portfolios`
 - **Visibility:** **Public**
 - Initialize with: nothing (no README, no .gitignore, no license — we'll provide our own)
 
@@ -18,15 +18,15 @@ Go to https://github.com/new
 
 ```bash
 cd /c/Users/dishn/
-git clone https://github.com/doubledown3301/stockexperimentai-picks.git
+git clone https://github.com/doubledown3301/thestockexperiment-portfolios.git
 ```
 
-This creates `c:/Users/dishn/stockexperimentai-picks/` (a new directory next to `StockExperimentAI/`).
+This creates `c:/Users/dishn/thestockexperiment-portfolios/` (a new directory next to `StockExperimentAI/`).
 
 ### 3. Copy template contents into the clone
 
 ```bash
-cd /c/Users/dishn/stockexperimentai-picks
+cd /c/Users/dishn/thestockexperiment-portfolios
 
 # Copy everything from this template (including .github/, picks/, README.md, LICENSE, .gitignore)
 cp -r /c/Users/dishn/StockExperimentAI/public-picks-template/. .
@@ -49,7 +49,7 @@ git push
 
 ### 5. Verify the GitHub Actions workflow runs
 
-Visit https://github.com/doubledown3301/stockexperimentai-picks/actions
+Visit https://github.com/doubledown3301/thestockexperiment-portfolios/actions
 
 The "Timestamp picks files" workflow should trigger on the initial push and add `picks/03022026.csv.ots` to the repo. (Note: this is just a starting anchor for the March 2 file — it doesn't retroactively prove the file existed back on March 2. It just locks the file's bytes from any future tampering.)
 
