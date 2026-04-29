@@ -1,0 +1,60 @@
+name: Upgrade OpenTimestamps proofs
+
+# Once the initial OTS proof is stamped (calendar attestation), it takes
+# ~3-24 hours for Bitcoin block confirmation to arrive. This workflow runs
+# daily and attempts to upgrade any pending proofs to include the Bitcoin
+# attestation. Once upgraded, the proof becomes fully decentralized -
+# verifiable without trusting any calendar server.
+#
+# Safe to re-run: ots upgrade is idempotent and skips already-upgraded files.
+
+on:
+  schedule:
+    # Daily at 12:00 UTC
+    - cron: '0 12 * * *'
+  workflow_dispatch:    # also allow manual run from the Actions UI
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install OpenTimestamps client
+        run: pip install opentimestamps-client
+
+      - name: Attempt upgrade on all .ots files
+        shell: bash
+        run: |
+          set +e   # don't fail the job if upgrades are still pending
+          shopt -s nullglob
+          for ots in picks/*.ots; do
+            if [ -f "$ots" ]; then
+              echo "::group::$ots"
+              ots upgrade "$ots" || echo "  (still pending - will retry next run)"
+              echo "::endgroup::"
+            fi
+          done
+
+      - name: Commit any upgrades
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add picks/*.ots 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "No new upgrades available - all proofs already up to date or still pending Bitcoin confirmation."
+          else
+            git commit -m "Upgrade OpenTimestamps proofs with Bitcoin attestation"
+            git push
+          fi
