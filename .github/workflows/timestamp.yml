@@ -1,0 +1,74 @@
+name: Timestamp picks files
+
+# Triggered when a new picks/*.csv file is pushed.
+# Uses OpenTimestamps to anchor each file's SHA-256 hash to the Bitcoin blockchain.
+# Commits the .ots proof file back to the repo.
+
+on:
+  push:
+    paths:
+      - 'picks/*.csv'
+
+permissions:
+  contents: write
+
+jobs:
+  timestamp:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # need previous commit to detect changed files
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install OpenTimestamps client
+        run: pip install opentimestamps-client
+
+      - name: Identify newly added/modified picks CSVs
+        id: find
+        shell: bash
+        run: |
+          # Diff between this commit and previous, restricted to picks/*.csv
+          changed=$(git diff --name-only HEAD~1 HEAD -- 'picks/*.csv' || true)
+          echo "Changed CSVs:"
+          echo "$changed"
+
+          # Filter out files that already have an .ots sibling
+          new_files=""
+          while IFS= read -r f; do
+            if [ -n "$f" ] && [ -f "$f" ] && [ ! -f "${f}.ots" ]; then
+              new_files="$new_files $f"
+            fi
+          done <<< "$changed"
+
+          echo "Files to stamp: $new_files"
+          echo "files=$new_files" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp each new file
+        if: steps.find.outputs.files != ''
+        shell: bash
+        run: |
+          for f in ${{ steps.find.outputs.files }}; do
+            echo "Stamping $f..."
+            ots stamp "$f"
+          done
+
+      - name: Commit OTS proofs
+        if: steps.find.outputs.files != ''
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add picks/*.csv.ots 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "No new .ots files to commit."
+          else
+            git commit -m "Add OpenTimestamps proofs for newly committed picks"
+            git push
+          fi
